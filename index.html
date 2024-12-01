@@ -1,220 +1,215 @@
 <?php
-// Handling form submission and API fetch
-$number = '';
-$response = null;
-
-if (isset($_POST['getInfo'])) {
-    $number = $_POST['number'];
-    $api_url = "https://api.pikaapis.my.id/nagad.php?msisdn=" . urlencode($number);
-    
-    // Use file_get_contents or cURL to fetch the API response
-    $response = @file_get_contents($api_url);
-    
-    if ($response === FALSE) {
-        $response = "Failed to fetch data from the API.";
-    } else {
-        // Decode JSON response into an associative array
-        $response = json_decode($response, true);
+// Function to generate random NID
+function generateRandomNID() {
+    $nid = '';
+    for ($i = 0; $i < 10; $i++) {
+        $nid .= rand(0, 9);
     }
+    return $nid;
+}
+
+// Function to generate random DOB
+function generateRandomDOB() {
+    $year = rand(1950, 2005);
+    $month = str_pad(rand(1, 12), 2, '0', STR_PAD_LEFT);
+    $day = str_pad(rand(1, 31), 2, '0', STR_PAD_LEFT);
+    return $year . '-' . $month . '-' . $day;
+}
+
+// Function to generate random location
+function generateRandomLocation() {
+    $locations = [
+        "Dhaka", "Chittagong", "Rajshahi", "Sylhet", "Khulna", "Barisal", "Rangpur", "Mymensingh",
+        "Bogra", "Comilla", "Cox's Bazar", "Narsingdi", "Netrakona", "Chandpur", "Tangail",
+        "Faridpur", "Jashore", "Khulna", "Pabna", "Naogaon", "Magura", "Satkhira", "Narayanganj",
+        "Madaripur", "Netrokona", "Thakurgaon", "Chandpur", "Lalmonirhat", "Jhalokathi", "Manikganj"
+    ];
+    return $locations[array_rand($locations)];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luxurious API Fetcher</title>
+    <title>Number to Bio</title>
     <style>
         body {
+            background-color: #111;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #f8c8dc, #fad0c4);
-            font-family: 'Helvetica', sans-serif;
-            color: #333;
         }
 
         .container {
             text-align: center;
-            background: #ffe6f2;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0px 10px 25px rgba(200, 100, 150, 0.2);
-            width: 90%;
-            max-width: 450px;
-            position: relative;
-            z-index: 1;
-        }
-
-        h2 {
-            font-size: 2em;
-            margin-bottom: 1em;
-            color: #d35d90;
-            font-weight: bold;
-            font-family: 'Georgia', serif;
-        }
-
-        input[type="number"] {
             width: 100%;
-            padding: 15px;
-            border-radius: 30px;
-            border: 1px solid #d6a3c4;
-            background: #fff0f5;
-            color: #7d4a6c;
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: center;
             margin-bottom: 20px;
+        }
+
+        .input-container input {
+            background-color: #222;
+            border: 2px solid #00FFFF;
+            padding: 10px;
+            color: #FF0000;
+            font-size: 16px;
+            width: 300px;
+            border-radius: 5px;
             text-align: center;
-            outline: none;
-            transition: background 0.3s, box-shadow 0.3s;
-            font-size: 1em;
+            box-shadow: 0 0 10px #00FFFF;
         }
 
-        input[type="number"]::placeholder {
-            color: #b98fb1;
-        }
-
-        input[type="number"]:focus {
-            background: #fcd9e7;
-            box-shadow: 0 0 10px rgba(240, 130, 160, 0.5);
-        }
-
-        button {
-            padding: 12px 30px;
-            margin: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
-            border-radius: 30px;
-            border: none;
+        .input-container button {
+            background-color: #333;
+            border: 2px solid #FFFF00;
+            color: #FFFF00;
+            padding: 10px;
+            font-size: 16px;
             cursor: pointer;
-            transition: background 0.3s, box-shadow 0.3s;
-            color: #fff;
+            border-radius: 5px;
+            margin-left: 10px;
+            box-shadow: 0 0 10px #FFFF00;
         }
 
-        .btn-info {
-            background-color: #ec6a8f;
-            box-shadow: 0 4px 10px rgba(230, 100, 130, 0.3);
-        }
-
-        .btn-info:hover {
-            background-color: #d45b80;
-            box-shadow: 0 6px 15px rgba(230, 100, 130, 0.4);
-        }
-
-        .btn-join {
-            background-color: #7e67d2;
-            box-shadow: 0 4px 10px rgba(126, 103, 210, 0.3);
-        }
-
-        .btn-join:hover {
-            background-color: #6a58ba;
-            box-shadow: 0 6px 15px rgba(126, 103, 210, 0.4);
-        }
-
-        .overlay {
-            display: none;
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
             justify-content: center;
             align-items: center;
-            z-index: 2;
         }
 
-        .overlay.active {
-            display: flex;
+        .loading-spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #00FF00;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
         }
 
-        .response-box {
-            padding: 30px;
-            background-color: #fff0f5;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(200, 150, 200, 0.3);
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-bubble {
+            background-color: #222;
+            color: #00FF00;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px;
+            width: 300px;
             text-align: left;
-            color: #7d4a6c;
-            width: 80%;
-            max-width: 400px;
-            animation: fadeIn 0.5s ease-in-out;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
 
-        .response-box p {
-            margin: 8px 0;
-            font-size: 1.1em;
+        .bubble-container {
+            margin-top: 30px;
         }
 
-        .response-key {
+        .fake-text {
+            color: #FF0000;
+            font-size: 12px;
             font-weight: bold;
-            color: #d35d90;
+            margin-top: 10px;
         }
-
-        .response-value {
-            color: #7d4a6c;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #d35d90;
-            color: #fff;
-            border: none;
-            padding: 5px 10px;
-            font-size: 1em;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🌟 Get Info & Join Channel 🌟</h2>
-        <form method="POST">
-            <input type="number" name="number" placeholder="📞 Enter Number Here" required value="<?= htmlspecialchars($number) ?>">
-            <div>
-                <button class="btn-info" type="submit" name="getInfo">🔍 Get Info</button>
-                <button class="btn-join" type="button" onclick="window.open('https://t.me/BLACKCYBERTEAM1', '_blank')">💬 Join Channel</button>
-            </div>
-        </form>
+
+<div class="container">
+    <h1>Number to Bio</h1>
+    <div class="input-container">
+        <input type="text" id="numberInput" placeholder="Enter Number" title="Enter a number to get a random location">
+        <button onclick="getLocationDetails()">Submit</button>
     </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+    <div class="bubble-container" id="resultContainer"></div>
+</div>
 
-    <?php if ($response): ?>
-        <div class="overlay active" id="overlay">
-            <div class="response-box">
-                <button class="close-btn" onclick="closeOverlay()">Close</button>
-                <?php if (is_array($response)): ?>
-                    <p><span class="response-key">👤 Name:</span> <span class="response-value"><?= htmlspecialchars($response['name'] ?? 'N/A') ?></span></p>
-                    <p><span class="response-key">🆔 User ID:</span> <span class="response-value"><?= htmlspecialchars($response['userId'] ?? 'N/A') ?></span></p>
-                    <p><span class="response-key">📌 Status:</span> <span class="response-value"><?= htmlspecialchars($response['status'] ?? 'N/A') ?></span></p>
-                    <p><span class="response-key">🔍 User Type:</span> <span class="response-value"><?= htmlspecialchars($response['userType'] ?? 'N/A') ?></span></p>
-                    <p><span class="response-key">💼 RB Base:</span> <span class="response-value"><?= htmlspecialchars($response['rbBase'] ? 'Yes' : 'No') ?></span></p>
-                    <p><span class="response-key">✅ Verification Status:</span> <span class="response-value"><?= htmlspecialchars($response['verificationStatus'] ?? 'N/A') ?></span></p>
-                    <p><span class="response-key">⚙️ Execution Status:</span> <span class="response-value"><?= htmlspecialchars($response['executionStatus'] ?? 'N/A') ?></span></p>
-                <?php else: ?>
-                    <p><span class="response-key">Error:</span> <span class="response-value"><?= htmlspecialchars($response) ?></span></p>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
+<script>
+    function getLocationDetails() {
+        const numberInput = document.getElementById('numberInput').value;
+        const resultContainer = document.getElementById('resultContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
 
-    <script>
-        function closeOverlay() {
-            document.getElementById('overlay').classList.remove('active');
+        // Show loading overlay
+        loadingOverlay.style.display = 'flex';
+        
+        // Simulate loading for 4 seconds
+        setTimeout(() => {
+            // Generate random NID, DOB, and Location
+            const randomNID = generateRandomNID();
+            const randomDOB = generateRandomDOB();
+            const randomLocation = generateRandomLocation();
+
+            // Hide loading overlay
+            loadingOverlay.style.display = 'none';
+
+            // Display results in bubbles
+            resultContainer.innerHTML = `
+                <div class="result-bubble">
+                    <strong>Number:</strong> ${numberInput}<br>
+                    <strong>NID:</strong> ${randomNID}<br>
+                    <strong>DOB:</strong> ${randomDOB}<br>
+                    <strong>Location:</strong> ${randomLocation}
+                </div>
+            `;
+
+            // Show "Fake" text after 4 seconds
+            setTimeout(() => {
+                const fakeText = document.createElement('div');
+                fakeText.classList.add('fake-text');
+                fakeText.textContent = 'Fake';
+                resultContainer.appendChild(fakeText);
+            }, 4000);
+        }, 4000);
+    }
+
+    function generateRandomNID() {
+        let nid = '';
+        for (let i = 0; i < 10; i++) {
+            nid += Math.floor(Math.random() * 10);
         }
-    </script>
+        return nid;
+    }
+
+    function generateRandomDOB() {
+        const year = Math.floor(Math.random() * (2005 - 1950 + 1)) + 1950;
+        const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+        const day = String(Math.floor(Math.random() * 31) + 1).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function generateRandomLocation() {
+        const locations = [
+            "Dhaka", "Chittagong", "Rajshahi", "Sylhet", "Khulna", "Barisal", "Rangpur", "Mymensingh",
+            "Bogra", "Comilla", "Cox's Bazar", "Narsingdi", "Netrakona", "Chandpur", "Tangail",
+            "Faridpur", "Jashore", "Khulna", "Pabna", "Naogaon", "Magura", "Satkhira", "Narayanganj",
+            "Madaripur", "Netrokona", "Thakurgaon", "Chandpur", "Lalmonirhat", "Jhalokathi", "Manikganj"
+        ];
+        return locations[Math.floor(Math.random() * locations.length)];
+    }
+</script>
+
 </body>
 </html>
